@@ -55,6 +55,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+.micropico
 
 # OS
 .DS_Store
@@ -66,3 +67,24 @@ Thumbs.db
 
 # Logs
 *.log
+
+# KiCad temporary files
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*-backups/
+fp-info-cache
+*.net.bak
+
+# Build artifacts
+build/
+dist/
+
+# Test data
+test_data/
+*.csv
+*.json
+
+# Temporary files
+*.tmp
+*.bak
+*.old

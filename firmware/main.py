@@ -1,7 +1,14 @@
 # Asyncio-based main file for multiple Battery Charger Controllers
 # This allows regulating multiple controllers simultaneously
 
-from battery_charger_controller import BatteryChargerController
+# Import from new structure
+import sys
+sys.path.append('/firmware/src')
+sys.path.append('/firmware/src/controllers')
+sys.path.append('/firmware/src/drivers')
+
+from src.controllers.battery_charger_controller import BatteryChargerController
+from src.config import *
 import asyncio
 from machine import Pin
 import board
