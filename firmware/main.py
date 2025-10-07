@@ -3,12 +3,11 @@
 
 # Import from new structure
 import sys
-sys.path.append('/firmware/src')
-sys.path.append('/firmware/src/controllers')
-sys.path.append('/firmware/src/drivers')
+sys.path.insert(0, '/src')
+sys.path.insert(0, '/src/controllers')
+sys.path.insert(0, '/src/drivers')
 
-from src.controllers.battery_charger_controller import BatteryChargerController
-from src.config import *
+from battery_charger_controller import BatteryChargerController
 import asyncio
 from machine import Pin
 import board
