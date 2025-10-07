@@ -3,6 +3,7 @@
 
 
 import asyncio
+import time
 from machine import Pin
 import board
 from src.controllers.battery_charger_controller import BatteryChargerController
@@ -71,12 +72,41 @@ async def run_controller(controller, mode, name="Controller"):
     try:
         if ENABLE_PERFORMANCE_MONITOR:
             # Run with performance monitoring
-            while True:
+            # We need to manually implement the regulation loop to track performance
+            controller.current_mode = mode
+            controller.is_running = True
+            controller.cycle_count = 0
+            controller.start_time = time.ticks_ms()
+            
+            print("="*40)
+            print(f"Starting {mode} mode")
+            print(f"Target: V={controller.target_voltage}V, I={controller.target_current}mA")
+            print("Press Ctrl+C to stop")
+            
+            while controller.is_running:
                 # Mark start of work
                 perf_monitor.mark_busy_start()
                 
-                # Do one regulation cycle
-                await controller._regulation_cycle()
+                # Read measurements
+                measurements = controller.read_measurements()
+                
+                # Safety check
+                if not controller._safety_check(measurements):
+                    print("Safety check failed - stopping regulation")
+                    break
+                
+                # Execute control step based on mode
+                if mode == controller.MODE_VOLTAGE_REGULATION:
+                    controller._voltage_regulation_step(measurements)
+                elif mode == controller.MODE_CURRENT_LIMITING:
+                    controller._current_regulation_step(measurements)
+                elif mode == controller.MODE_CC_CV:
+                    controller._cc_cv_step(measurements)
+                
+                # Update statistics
+                controller.cycle_count += 1
+                if controller.cycle_count % 500 == 0:  # Print every 500 cycles
+                    controller._print_status(measurements)
                 
                 # Mark end of work
                 perf_monitor.mark_busy_end()
@@ -91,6 +121,8 @@ async def run_controller(controller, mode, name="Controller"):
         print(f"{name}: Regulation cancelled")
     except Exception as e:
         print(f"{name}: Error - {e}")
+    finally:
+        controller.stop_regulation()
 
 
 async def main():
