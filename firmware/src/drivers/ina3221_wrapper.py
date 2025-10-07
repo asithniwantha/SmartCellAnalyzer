@@ -1,9 +1,14 @@
 # INA3221 Wrapper Class for Easy Access
 # Provides simplified interface to the Adafruit INA3221 library
 
+
 from machine import I2C, Pin
-from adafruit_ina3221 import INA3221
-import time
+try:
+    # Try importing from same directory (when uploaded to Pico)
+    from adafruit_ina3221 import INA3221
+except ImportError:
+    # Try importing from src.drivers (for development)
+    from src.drivers.adafruit_ina3221 import INA3221
 
 class INA3221Sensor:
     """
