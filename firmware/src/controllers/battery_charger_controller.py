@@ -1,10 +1,7 @@
 # Battery Charger Controller with Asyncio Support
 # Raspberry Pi Pico 2 W (RP2350) with INA3221 and PCA9685
-# Author: AI Assistant
-# Date: September 2025
 
-from ina3221_wrapper import INA3221Sensor
-from pca9685 import PCA9685
+from src.drivers import INA3221Sensor, PCA9685
 import time
 import asyncio
 from machine import Pin, I2C
