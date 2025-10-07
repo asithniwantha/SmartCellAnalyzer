@@ -6,6 +6,15 @@ import asyncio
 from machine import Pin
 import board
 from src.controllers.battery_charger_controller import BatteryChargerController
+from src.utils.performance_monitor import PerformanceMonitor
+
+# === DEVELOPMENT ONLY: Performance Monitoring ===
+# Set to True to enable performance monitoring (shows CPU usage and available time)
+# Set to False for production (removes ~5-10% overhead)
+ENABLE_PERFORMANCE_MONITOR = True
+
+# Create global performance monitor
+perf_monitor = PerformanceMonitor(sample_interval=5.0)  # Update stats every 5 seconds
 
 async def blink_led(interval=0.2):
     """
@@ -26,9 +35,31 @@ async def blink_led(interval=0.2):
         print("LED blinking stopped")
 
 
+async def monitor_performance():
+    """
+    Monitor and display performance statistics periodically.
+    FOR DEVELOPMENT ONLY - Shows CPU usage and available processing time.
+    """
+    if not ENABLE_PERFORMANCE_MONITOR:
+        return
+    
+    print("Performance monitoring started (updates every 5 seconds)")
+    
+    try:
+        while True:
+            await asyncio.sleep(5.0)
+            
+            # Update and print statistics
+            if perf_monitor.update():
+                perf_monitor.print_stats()
+    
+    except asyncio.CancelledError:
+        print("Performance monitoring stopped")
+
+
 async def run_controller(controller, mode, name="Controller"):
     """
-    Run a single controller asynchronously.
+    Run a single controller asynchronously with performance monitoring.
     
     Args:
         controller: BatteryChargerController instance
@@ -36,8 +67,26 @@ async def run_controller(controller, mode, name="Controller"):
         name: Name for logging purposes
     """
     print(f"\n{name}: Starting regulation")
+    
     try:
-        await controller.start_regulation(mode)
+        if ENABLE_PERFORMANCE_MONITOR:
+            # Run with performance monitoring
+            while True:
+                # Mark start of work
+                perf_monitor.mark_busy_start()
+                
+                # Do one regulation cycle
+                await controller._regulation_cycle()
+                
+                # Mark end of work
+                perf_monitor.mark_busy_end()
+                
+                # Wait before next cycle (idle time)
+                await asyncio.sleep(controller.update_interval)
+        else:
+            # Run normally without monitoring
+            await controller.start_regulation(mode)
+            
     except asyncio.CancelledError:
         print(f"{name}: Regulation cancelled")
     except Exception as e:
@@ -49,6 +98,8 @@ async def main():
     
     print("=" * 60)
     print("Multi-Controller Battery Charger System")
+    if ENABLE_PERFORMANCE_MONITOR:
+        print("*** PERFORMANCE MONITORING ENABLED (Development Mode) ***")
     print("=" * 60)
     
     # Each controller can use different channels on the same hardware
@@ -73,12 +124,16 @@ async def main():
     
     # Create tasks for all controllers and LED blinking
     tasks = [
-        asyncio.create_task(blink_led(0.05)),  # Blink LED every 200ms
+        asyncio.create_task(blink_led(0.05)),  # Blink LED every 50ms
         asyncio.create_task(run_controller(controller1, controller1.MODE_CC_CV, "Battery-1")),
         # Uncomment these as needed:
         # asyncio.create_task(run_controller(controller2, controller2.MODE_CC_CV, "Battery-2")),
         # asyncio.create_task(run_controller(controller3, controller3.MODE_VOLTAGE_REGULATION, "Battery-3")),
     ]
+    
+    # Add performance monitoring task if enabled
+    if ENABLE_PERFORMANCE_MONITOR:
+        tasks.append(asyncio.create_task(monitor_performance()))
     
     try:
         # Run all tasks concurrently
