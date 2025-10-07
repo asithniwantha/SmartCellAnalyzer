@@ -34,7 +34,7 @@ class BatteryChargerController:
 
     def __init__(self,
                  # INA3221 Configuration
-                 ina_scl_pin=21, ina_sda_pin=20, ina_channel=0,
+                 ina_scl_pin=21, ina_sda_pin=20, ina_channel=0, ina_address=0x40,
                  # PCA9685 Configuration
                  pca_scl_pin=19, pca_sda_pin=18, pca_channel=1, pca_freq=1526,
                  # Control Parameters
@@ -48,7 +48,8 @@ class BatteryChargerController:
         Args:
             ina_scl_pin (int): INA3221 SCL pin (default: 21)
             ina_sda_pin (int): INA3221 SDA pin (default: 20)
-            ina_channel (int): INA3221 channel to monitor (default: 0)
+            ina_channel (int): INA3221 channel to monitor (0-2, default: 0)
+            ina_address (int): INA3221 I2C address (0x40, 0x41, 0x42, or 0x43, default: 0x40)
             pca_scl_pin (int): PCA9685 SCL pin (default: 19)
             pca_sda_pin (int): PCA9685 SDA pin (default: 18)
             pca_channel (int): PCA9685 channel to control (default: 1)
@@ -61,10 +62,17 @@ class BatteryChargerController:
             min_duty (int): Minimum duty cycle (default: 0)
             max_duty (int): Maximum duty cycle (default: 4095)
             update_interval (float): Control loop update interval in seconds (default: 0.01)
+        
+        Note: Multiple INA3221 modules can be used on the same I2C bus with different addresses:
+            - 0x40 (default): Channels 0-2
+            - 0x41: Channels 3-5  
+            - 0x42: Channels 6-8
+            - 0x43: Channels 9-11
         """
 
         # Hardware configuration
         self.ina_channel = ina_channel
+        self.ina_address = ina_address
         self.pca_channel = pca_channel
 
         # Control parameters
@@ -94,17 +102,16 @@ class BatteryChargerController:
 
         # Initialize hardware
         self._initialize_hardware(
-            ina_scl_pin, ina_sda_pin, pca_scl_pin, pca_sda_pin, pca_freq)
+            ina_scl_pin, ina_sda_pin, ina_address, pca_scl_pin, pca_sda_pin, pca_freq)
 
-    def _initialize_hardware(self, ina_scl, ina_sda, pca_scl, pca_sda, pca_freq):
+    def _initialize_hardware(self, ina_scl, ina_sda, ina_addr, pca_scl, pca_sda, pca_freq):
         """Initialize INA3221 and PCA9685 hardware."""
         try:
             print("Initializing Battery Charger Controller...")
 
             # Initialize INA3221
-            print(
-                f"Setting up INA3221 on I2C0 (SCL=GP{ina_scl}, SDA=GP{ina_sda})")
-            self.ina3221 = INA3221Sensor(scl_pin=ina_scl, sda_pin=ina_sda)
+            print(f"Setting up INA3221 at address {hex(ina_addr)} on I2C0 (SCL=GP{ina_scl}, SDA=GP{ina_sda})")
+            self.ina3221 = INA3221Sensor(scl_pin=ina_scl, sda_pin=ina_sda, address=ina_addr)
 
             # Initialize PCA9685
             print(

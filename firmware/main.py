@@ -3,14 +3,12 @@
 
 # MicroPico uploads everything, so we need to add src paths
 import sys
-sys.path.insert(0, 'src/controllers')
 sys.path.insert(0, 'src/drivers')
 
-from battery_charger_controller import BatteryChargerController
 import asyncio
 from machine import Pin
 import board
-
+from src.controllers.battery_charger_controller import BatteryChargerController
 
 async def blink_led(interval=0.2):
     """

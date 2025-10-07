@@ -10,13 +10,25 @@ class INA3221Sensor:
     A wrapper class for the INA3221 3-channel power monitor that provides
     easy access to voltage and current measurements.
     
+    Supports multiple INA3221 modules on the same I2C bus with different addresses.
+    Available addresses: 0x40, 0x41, 0x42, 0x43
+    
     Usage:
-        ina = INA3221Sensor()
+        # Single module
+        ina = INA3221Sensor(address=0x40)
         channel = ina.channels[0]  # Using first channel
         bus_voltage = channel.bus_voltage  # Returns voltage in volts
-        shunt_voltage = channel.shunt_voltage  # Returns voltage in millivolts
-        current = channel.current  # Returns current in milliamps
+        
+        # Multiple modules
+        ina1 = INA3221Sensor(address=0x40)  # Channels 0-2
+        ina2 = INA3221Sensor(address=0x41)  # Channels 3-5
+        ina3 = INA3221Sensor(address=0x42)  # Channels 6-8
+        ina4 = INA3221Sensor(address=0x43)  # Channels 9-11
     """
+    
+    # Class variable to share I2C bus across all instances
+    _i2c_bus = None
+    _i2c_config = None
     
     def __init__(self, scl_pin=21, sda_pin=20, i2c_freq=400000, address=0x40, 
                  shunt_resistances=[0.1, 0.1, 0.1], enable_channels=[0, 1, 2]):
@@ -27,9 +39,11 @@ class INA3221Sensor:
             scl_pin (int): GPIO pin for I2C SCL (default: 21)
             sda_pin (int): GPIO pin for I2C SDA (default: 20)
             i2c_freq (int): I2C frequency in Hz (default: 400000)
-            address (int): I2C address of the INA3221 (default: 0x40)
+            address (int): I2C address of the INA3221 (0x40, 0x41, 0x42, or 0x43)
             shunt_resistances (list): Shunt resistance values in ohms for each channel (default: [0.1, 0.1, 0.1])
             enable_channels (list): List of channels to enable (default: [0, 1, 2])
+        
+        Note: Multiple INA3221 modules can share the same I2C bus but must have different addresses.
         """
         self.scl_pin = scl_pin
         self.sda_pin = sda_pin
@@ -47,29 +61,48 @@ class INA3221Sensor:
     def _initialize(self):
         """Initialize the INA3221 sensor and configure channels."""
         try:
-            # Setup I2C
-            self.i2c = I2C(0, scl=Pin(self.scl_pin), sda=Pin(self.sda_pin), freq=self.i2c_freq)
+            # Validate address
+            valid_addresses = [0x40, 0x41, 0x42, 0x43]
+            if self.address not in valid_addresses:
+                print(f"Warning: Address {hex(self.address)} is not standard.")
+                print(f"Valid addresses: {[hex(a) for a in valid_addresses]}")
             
-            # Scan for devices
-            print("Scanning I2C bus...")
+            # Setup I2C bus (shared across all instances)
+            current_config = (self.scl_pin, self.sda_pin, self.i2c_freq)
+            
+            if INA3221Sensor._i2c_bus is None or INA3221Sensor._i2c_config != current_config:
+                # Create new I2C bus
+                INA3221Sensor._i2c_bus = I2C(0, scl=Pin(self.scl_pin), sda=Pin(self.sda_pin), freq=self.i2c_freq)
+                INA3221Sensor._i2c_config = current_config
+                
+                # Scan for devices
+                print(f"\nScanning I2C bus (SCL=GP{self.scl_pin}, SDA=GP{self.sda_pin})...")
+                devices = INA3221Sensor._i2c_bus.scan()
+                print("Found devices at addresses:", [hex(addr) for addr in devices])
+                
+                if not devices:
+                    print("No I2C devices found! Check wiring:")
+                    print(f"- INA3221 SDA -> GP{self.sda_pin}")
+                    print(f"- INA3221 SCL -> GP{self.scl_pin}")
+                    print("- INA3221 VCC -> 3V3")
+                    print("- INA3221 GND -> GND")
+                    return False
+            
+            # Use the shared I2C bus
+            self.i2c = INA3221Sensor._i2c_bus
+            
+            # Check if the requested address exists
             devices = self.i2c.scan()
-            print("Found devices at addresses:", [hex(addr) for addr in devices])
-            
-            if not devices:
-                print("No I2C devices found! Check wiring:")
-                print(f"- INA3221 SDA -> GP{self.sda_pin}")
-                print(f"- INA3221 SCL -> GP{self.scl_pin}")
-                print("- INA3221 VCC -> 3V3")
-                print("- INA3221 GND -> GND")
+            if self.address not in devices:
+                print(f"ERROR: INA3221 not found at address {hex(self.address)}")
+                print(f"Available addresses: {[hex(addr) for addr in devices]}")
                 return False
             
-            # Use specified address or first found device
-            addr = self.address if self.address in devices else devices[0]
-            print(f"Attempting to use INA3221 at address {hex(addr)}")
+            print(f"\nInitializing INA3221 at address {hex(self.address)}...")
             
             # Initialize INA3221
-            self.ina = INA3221(self.i2c, address=addr, enable=self.enable_channels, probe=False)
-            print("INA3221 initialized successfully!")
+            self.ina = INA3221(self.i2c, address=self.address, enable=self.enable_channels, probe=False)
+            print(f"INA3221 at {hex(self.address)} initialized successfully!")
             
             # Verify device IDs
             try:
@@ -111,12 +144,14 @@ class INA3221Sensor:
             return True
             
         except Exception as e:
-            print(f"INA3221 initialization failed: {e}")
+            print(f"INA3221 initialization failed at {hex(self.address)}: {e}")
             print("Trying lower I2C frequency...")
             try:
                 # Try with lower frequency
-                self.i2c = I2C(0, scl=Pin(self.scl_pin), sda=Pin(self.sda_pin), freq=100000)
-                self.ina = INA3221(self.i2c, address=addr, enable=self.enable_channels, probe=False)
+                INA3221Sensor._i2c_bus = I2C(0, scl=Pin(self.scl_pin), sda=Pin(self.sda_pin), freq=100000)
+                INA3221Sensor._i2c_config = (self.scl_pin, self.sda_pin, 100000)
+                self.i2c = INA3221Sensor._i2c_bus
+                self.ina = INA3221(self.i2c, address=self.address, enable=self.enable_channels, probe=False)
                 
                 # Configure channels again
                 for i, channel_num in enumerate(self.enable_channels):
