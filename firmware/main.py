@@ -171,7 +171,7 @@ async def main():
         target_voltage=8.4,
         target_current=700,
         duty_step=4,
-        update_interval=0.004  # 4ms updates
+        update_interval=0.01  # 10ms updates
     )
     
     print("\nStarting all controllers...")

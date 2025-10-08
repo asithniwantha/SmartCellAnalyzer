@@ -1,16 +1,10 @@
-# Smart Cell Analyzer - Architecture & Development Guide
+# Smart Cell Analyzer - Architecture Guide
 
-## Current Architecture Assessment
+## System Architecture
 
-### ✅ Strengths
-- Clean separation of hardware drivers and business logic
-- Good use of async/await for concurrent operations
-- Well-documented code with examples
-- Flexible controller design
+The Smart Cell Analyzer uses a modular, layered architecture designed for scalability and maintainability.
 
-### ⚠️ Areas for Improvement
-
-## Recommended Project Structure
+## Project Structure
 
 ```
 SmartCellAnalyzer/
@@ -66,146 +60,80 @@ SmartCellAnalyzer/
 └── LICENSE
 ```
 
+## Key Design Principles
+
+### Separation of Concerns
+- **Drivers**: Hardware abstraction (INA3221, PCA9685)
+- **Controllers**: Business logic (charging algorithms)
+- **Utils**: Helper functions and utilities
+- **Config**: Centralized configuration management
+
+### Async Architecture
+- Non-blocking operation using MicroPython's `asyncio`
+- Enables concurrent control of multiple batteries
+- Efficient CPU utilization
+
+### Safety First
+- Configurable voltage, current, and timeout limits
+- Real-time monitoring and protection
+- Graceful shutdown on errors
+
 ## Development Roadmap
 
-### Phase 1: Refactoring (Immediate)
-- [ ] Reorganize files into proper folder structure
-- [ ] Create `config.py` for centralized configuration
-- [ ] Move examples to `examples/` folder
-- [ ] Move tests to `tests/` folder
-- [ ] Remove `main_old.py` or archive it
-- [ ] Add content to `boot.py` or remove it
-- [ ] Update `.gitignore` for IDE files
+### Completed ✓
+- ✓ Modular project structure
+- ✓ Asyncio multi-controller support
+- ✓ Multi-module INA3221 support (12 channels)
+- ✓ Comprehensive documentation
+- ✓ Test suite
 
-### Phase 2: Core Features (Short-term)
-- [ ] Implement proper logging system
-- [ ] Add error handling and recovery mechanisms
-- [ ] Create battery profile management
-- [ ] Add calibration system
-- [ ] Implement data persistence (save/load)
-- [ ] Add more comprehensive unit tests
-
-### Phase 3: Enhanced Features (Mid-term)
+### Planned Features
 - [ ] Temperature monitoring integration
-- [ ] Web interface for monitoring
-- [ ] Data export (CSV/JSON)
+- [ ] Data logging to SD card/flash
+- [ ] LCD/OLED display support
+- [ ] Web interface for remote monitoring
 - [ ] Battery health analytics
-- [ ] Automatic firmware updates
-- [ ] Multi-language support
-
-### Phase 4: Advanced Features (Long-term)
-- [ ] Machine learning for battery health prediction
-- [ ] Cloud integration for remote monitoring
-- [ ] Mobile app support
-- [ ] Advanced analytics dashboard
-- [ ] Battery cycle optimization algorithms
+- [ ] WiFi connectivity (Pico W)
 
 ## Code Quality Standards
 
-### Required for All New Code:
-1. **Documentation**: Docstrings for all classes and functions
-2. **Type Hints**: Where applicable (limited in MicroPython)
-3. **Error Handling**: Try-except blocks with proper error messages
-4. **Testing**: Unit tests for new features
-5. **Logging**: Proper logging of important events
-6. **Configuration**: Use config.py for constants
+### Documentation
+- Docstrings for all classes and public methods
+- Inline comments for complex logic
+- README files in each major directory
 
-### Code Review Checklist:
-- [ ] Follows project structure
-- [ ] Has proper documentation
-- [ ] Includes error handling
-- [ ] Has unit tests
-- [ ] Uses configuration from config.py
-- [ ] No hardcoded values
-- [ ] Proper async/await usage
-- [ ] Safety checks implemented
+### Error Handling
+- Try-except blocks for hardware operations
+- Graceful degradation on errors
+- Clear error messages for debugging
 
-## Configuration Management
+### Configuration
+- Use `config.py` for all constants
+- No hardcoded values in code
+- Profile-based battery settings
 
-### Create `config.py`:
-```python
-# Hardware Configuration
-INA3221_SCL_PIN = 21
-INA3221_SDA_PIN = 20
-PCA9685_SCL_PIN = 19
-PCA9685_SDA_PIN = 18
+### Testing
+- Unit tests for core functionality
+- Integration tests for hardware
+- Test suite in `firmware/tests/`
 
-# Safety Limits
-MAX_VOLTAGE = 30.0
-MAX_CURRENT = 5000
-MIN_VOLTAGE = 0.1
+## Performance Guidelines
 
-# Control Parameters
-DEFAULT_DUTY_STEP = 2
-DEFAULT_UPDATE_INTERVAL = 0.001
-```
+### Typical Values
+- Update interval: 5-10ms (configurable)
+- CPU usage: 15-20% per controller
+- Memory usage: ~5-8KB per controller
+- Supports 12 concurrent controllers
 
-## Testing Strategy
+### Optimization Tips
+- Use appropriate update intervals (batteries change slowly)
+- Leverage asyncio for efficiency
+- Monitor memory usage with `gc.mem_free()`
+- Profile code before optimizing
 
-### Unit Tests:
-- Test individual components in isolation
-- Mock hardware dependencies
-- Cover edge cases and error conditions
+## Contributing
 
-### Integration Tests:
-- Test component interactions
-- Verify hardware communication
-- Test multi-controller scenarios
-
-### System Tests:
-- End-to-end charging cycles
-- Safety limit testing
-- Performance benchmarks
-
-## Dependencies Management
-
-### Current Dependencies:
-- MicroPython standard library
-- Custom drivers (INA3221, PCA9685)
-
-### Future Considerations:
-- SD card library for data logging
-- WiFi/Bluetooth libraries for connectivity
-- Time sync libraries for accurate timestamps
-
-## Performance Considerations
-
-### Current:
-- 1ms update intervals per controller
-- 3 controllers max (limited by INA3221 channels)
-- ~30-40% CPU usage with 3 controllers
-
-### Optimization Opportunities:
-- Adaptive update intervals
-- DMA for I2C communication
-- Interrupt-driven measurements
-- Background data logging
-
-## Security Considerations
-
-### Current:
-- No authentication
-- No encryption
-- Direct hardware access
-
-### Future Requirements:
-- Authentication for remote access
-- Encrypted data transmission
-- Access control for settings
-- Audit logging
-
-## Documentation Standards
-
-### Required Documentation:
-1. **API Reference**: All public methods
-2. **User Guide**: How to use the system
-3. **Developer Guide**: How to contribute
-4. **Hardware Guide**: Assembly and setup
-5. **Troubleshooting**: Common issues
-
-## Contribution Guidelines
-
-### Getting Started:
+### Getting Started
 1. Fork the repository
 2. Create a feature branch
 3. Follow code quality standards
@@ -213,30 +141,27 @@ DEFAULT_UPDATE_INTERVAL = 0.001
 5. Update documentation
 6. Submit pull request
 
-### Commit Message Format:
+### Commit Message Format
 ```
-type(scope): subject
+type(scope): brief description
 
-- Detailed description
-- Breaking changes
-- Issue references
+- Detailed explanation
+- Breaking changes (if any)
+- Issue references (#123)
 ```
 
-Types: feat, fix, docs, style, refactor, test, chore
+**Types:** feat, fix, docs, refactor, test, chore
 
-## Next Steps
+## Support
 
-1. Review this architecture document
-2. Start with Phase 1 refactoring
-3. Implement configuration management
-4. Add comprehensive testing
-5. Improve error handling
-6. Add logging system
+For questions or issues:
+- Check documentation in `firmware/docs/`
+- Review examples in `firmware/examples/`
+- Open an issue on GitHub
 
-## Questions?
+## Resources
 
-Open an issue on GitHub for:
-- Architecture decisions
-- Feature requests
-- Bug reports
-- General questions
+- [MicroPython Documentation](https://docs.micropython.org/)
+- [RP2040 Datasheet](https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf)
+- [INA3221 Datasheet](https://www.ti.com/lit/ds/symlink/ina3221.pdf)
+- [PCA9685 Datasheet](https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf)

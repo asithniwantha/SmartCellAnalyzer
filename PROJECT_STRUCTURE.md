@@ -1,25 +1,28 @@
 # Project Structure
 
+## Directory Layout
+
 ```
 SmartCellAnalyzer/
 │
-├── 📄 README.md                      # Project overview and introduction
+├── 📄 README.md                      # Project overview
 ├── 📄 LICENSE                        # MIT License
-├── 📄 ARCHITECTURE.md                # Architecture guidelines and roadmap
-├── 📄 DEPLOYMENT.md                  # Deployment instructions
+├── 📄 ARCHITECTURE.md                # Architecture and development guide
+├── 📄 PROJECT_STRUCTURE.md           # This file
 ├── 📄 .gitignore                     # Git ignore rules
+├── 📄 SmartCellAnalyzer.code-workspace  # VS Code workspace
 │
-├── 📁 docs/                          # Project-level documentation
+├── 📁 docs/                          # Project resources
 │   └── 🖼️ Logo Smart cell analyzer.png
 │
-├── 📁 firmware/                      # All firmware code
+├── 📁 firmware/                      # Firmware code
 │   ├── 📄 README.md                  # Firmware overview
 │   ├── 📄 main.py                    # Main entry point
 │   ├── 📄 boot.py                    # Boot configuration
 │   │
-│   ├── 📁 src/                       # Source code (production)
+│   ├── 📁 src/                       # Source code
 │   │   ├── 📄 __init__.py
-│   │   ├── 📄 config.py              # ⭐ Central configuration
+│   │   ├── 📄 config.py              # Central configuration
 │   │   │
 │   │   ├── 📁 controllers/           # Control logic
 │   │   │   ├── 📄 __init__.py
@@ -31,107 +34,65 @@ SmartCellAnalyzer/
 │   │   │   ├── 📄 adafruit_ina3221.py
 │   │   │   └── 📄 pca9685.py
 │   │   │
-│   │   └── 📁 utils/                 # Utilities (future)
-│   │       └── 📄 __init__.py
+│   │   └── 📁 utils/                 # Utilities
+│   │       ├── 📄 __init__.py
+│   │       └── 📄 performance_monitor.py
 │   │
 │   ├── 📁 examples/                  # Example code
 │   │   ├── 📄 README.md
-│   │   ├── 📄 charger_example.py
-│   │   └── 📄 multi_controller_example.py
+│   │   └── 📄 multi_module_example.py
 │   │
 │   ├── 📁 tests/                     # Test suite
 │   │   ├── 📄 README.md
 │   │   └── 📄 test_asyncio.py
 │   │
-│   └── 📁 docs/                      # Firmware documentation
+│   └── 📁 docs/                      # Documentation
 │       ├── 📄 QUICK_START.md
 │       ├── 📄 README_ASYNCIO.md
-│       └── 📄 BEFORE_AFTER.md
+│       └── 📄 MULTI_MODULE_GUIDE.md
 │
-└── 📁 hardware/                      # Hardware design files
+└── 📁 hardware/                      # Hardware design
     ├── 📄 README.md
     └── 📁 schematics/                # KiCad files
         ├── 📄 SmartCellAnalyzer.kicad_pro
         ├── 📄 SmartCellAnalyzer.kicad_sch
         ├── 📄 SmartCellAnalyzer.kicad_pcb
-        ├── 📄 SmartCellAnalyzer.net
         ├── 📄 a.pdf
         └── 📄 b.pdf
 ```
 
-## Key Improvements
+## Key Components
 
-### ✅ Modular Structure
+### Firmware (`firmware/`)
+The main application code for the RP2040 microcontroller.
+
 - **src/**: Production code organized by function
-- **examples/**: Separate from production code
-- **tests/**: Dedicated testing directory
-- **docs/**: Documentation at appropriate levels
+  - **controllers/**: Battery charging control logic
+  - **drivers/**: Hardware abstraction layer
+  - **utils/**: Helper functions and utilities
+  - **config.py**: Centralized configuration
 
-### ✅ Clear Separation of Concerns
-- **controllers/**: Business logic
-- **drivers/**: Hardware abstraction
-- **utils/**: Helper functions
-- **config.py**: Centralized configuration
+- **examples/**: Working code examples
+- **tests/**: Test suite for validation
+- **docs/**: User and technical documentation
 
-### ✅ Better Documentation
-- README in every major directory
-- Architecture and deployment guides
-- Quick start and reference docs
-
-### ✅ Professional Organization
-- Hardware files separate from firmware
-- Examples separate from production code
-- Clean import structure with __init__.py files
-- Proper .gitignore coverage
+### Hardware (`hardware/`)
+KiCad schematics and PCB design files.
 
 ## Import Structure
 
 ```python
-# New import style
-from src.controllers.battery_charger_controller import BatteryChargerController
+# Import from organized structure
+from src.controllers import BatteryChargerController
 from src.drivers import INA3221Sensor, PCA9685
 from src.config import *
-
-# Or using package imports
-from src.controllers import BatteryChargerController
-from src.drivers import INA3221Sensor
 ```
-
-## Configuration Management
-
-All configuration is now centralized in `src/config.py`:
-
-```python
-# Hardware pins
-INA3221_SCL_PIN = 21
-PCA9685_SCL_PIN = 19
-
-# Safety limits
-MAX_VOLTAGE = 30.0
-MAX_CURRENT = 5000
-
-# Battery profiles
-BATTERY_PROFILES = {
-    'li_ion_single': {'voltage': 4.2, 'current': 1000},
-    # ... more profiles
-}
-```
-
-## File Count Summary
-
-- **Total files**: 32 (renamed/moved/created)
-- **New structure files**: 10+ new files
-- **Moved files**: 15+ files relocated
-- **Documentation files**: 8+ README/guide files
-- **Removed obsolete**: 2 files deleted
 
 ## Benefits
 
-1. 📦 **Scalability**: Easy to add new features
-2. 🔧 **Maintainability**: Clear code organization
-3. 📚 **Documentation**: Comprehensive guides
-4. 🧪 **Testability**: Dedicated test structure
-5. 🚀 **Deployment**: Clear deployment process
-6. 🤝 **Collaboration**: Easy for others to contribute
-7. ⚙️ **Configuration**: Centralized settings
-8. 🏗️ **Professional**: Industry-standard structure
+- 📦 **Modular**: Easy to extend and maintain
+- 🔧 **Organized**: Clear separation of concerns
+- 📚 **Documented**: Comprehensive guides and examples
+- 🧪 **Testable**: Dedicated test structure
+- 🚀 **Scalable**: Ready for future features
+- 🤝 **Professional**: Industry-standard layout

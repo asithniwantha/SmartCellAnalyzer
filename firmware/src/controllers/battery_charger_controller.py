@@ -38,7 +38,9 @@ class BatteryChargerController:
                  target_voltage=7.2, target_current=1000,
                  voltage_tolerance=0.05, current_tolerance=50,
                  duty_step=2, min_duty=0, max_duty=4095,
-                 update_interval=0.01):
+                 update_interval=0.01,
+                 # Hybrid control parameters
+                 sensor_read_interval=None, pwm_update_interval=None):
         """
         Initialize the battery charger controller.
 
@@ -59,12 +61,21 @@ class BatteryChargerController:
             min_duty (int): Minimum duty cycle (default: 0)
             max_duty (int): Maximum duty cycle (default: 4095)
             update_interval (float): Control loop update interval in seconds (default: 0.01)
+            sensor_read_interval (float): Sensor read interval (None = use update_interval)
+            pwm_update_interval (float): PWM update interval (None = use update_interval)
         
         Note: Multiple INA3221 modules can be used on the same I2C bus with different addresses:
             - 0x40 (default): Channels 0-2
             - 0x41: Channels 3-5  
             - 0x42: Channels 6-8
             - 0x43: Channels 9-11
+        
+        Hybrid Mode:
+            When sensor_read_interval and pwm_update_interval are specified separately,
+            the controller uses hybrid mode for optimal performance:
+            - Sensors read at slower rate (e.g., 10ms) to save CPU
+            - PWM updates at faster rate (e.g., 1ms) for quick response
+            - Cached sensor data used for PWM control between reads
         """
 
         # Hardware configuration
@@ -81,6 +92,15 @@ class BatteryChargerController:
         self.min_duty = min_duty
         self.max_duty = max_duty
         self.update_interval = update_interval
+        
+        # Hybrid mode timing
+        self.sensor_read_interval = sensor_read_interval if sensor_read_interval is not None else update_interval
+        self.pwm_update_interval = pwm_update_interval if pwm_update_interval is not None else update_interval
+        self.hybrid_mode = (sensor_read_interval is not None and pwm_update_interval is not None)
+        
+        # Cached measurements for hybrid mode
+        self.cached_measurements = None
+        self.last_sensor_read = 0
 
         # Current state
         self.current_duty = 1000
@@ -262,41 +282,63 @@ class BatteryChargerController:
         return True
 
     def _voltage_regulation_step(self, measurements):
-        """Perform one step of voltage regulation."""
+        """Perform one step of voltage regulation with adaptive step size."""
         voltage = measurements['voltage']
         voltage_error = voltage - self.target_voltage
 
         if abs(voltage_error) <= self.voltage_tolerance:
             return  # Within tolerance
 
+        # Adaptive step size based on error magnitude
+        # Larger error = bigger steps (faster response)
+        # Smaller error = smaller steps (precise control)
+        if abs(voltage_error) > 1.0:  # Large error (>1V)
+            step = self.duty_step * 8  # 8x speed
+        elif abs(voltage_error) > 0.5:  # Medium error (>0.5V)
+            step = self.duty_step * 4  # 4x speed
+        elif abs(voltage_error) > 0.2:  # Small error (>0.2V)
+            step = self.duty_step * 2  # 2x speed
+        else:  # Very small error (<0.2V)
+            step = self.duty_step  # Normal speed
+
         if voltage_error > 0:  # Voltage too high
-            if self.current_duty < self.max_duty:
-                self.current_duty = min(
-                    self.current_duty + self.duty_step, self.max_duty)
+            new_duty = min(self.current_duty + step, self.max_duty)
+            if new_duty != self.current_duty:
+                self.current_duty = new_duty
                 self.pca9685.duty(self.pca_channel, self.current_duty)
         else:  # Voltage too low
-            if self.current_duty > self.min_duty:
-                self.current_duty = max(
-                    self.current_duty - self.duty_step, self.min_duty)
+            new_duty = max(self.current_duty - step, self.min_duty)
+            if new_duty != self.current_duty:
+                self.current_duty = new_duty
                 self.pca9685.duty(self.pca_channel, self.current_duty)
 
     def _current_regulation_step(self, measurements):
-        """Perform one step of current regulation."""
+        """Perform one step of current regulation with adaptive step size."""
         current = measurements['current']
         current_error = current - self.target_current
 
         if abs(current_error) <= self.current_tolerance:
             return  # Within tolerance
 
+        # Adaptive step size based on error magnitude
+        if abs(current_error) > 500:  # Large error (>500mA)
+            step = self.duty_step * 8
+        elif abs(current_error) > 250:  # Medium error (>250mA)
+            step = self.duty_step * 4
+        elif abs(current_error) > 100:  # Small error (>100mA)
+            step = self.duty_step * 2
+        else:  # Very small error (<100mA)
+            step = self.duty_step
+
         if current_error > 0:  # Current too high
-            if self.current_duty > self.min_duty:
-                self.current_duty = min(
-                    self.current_duty + self.duty_step, self.max_duty)
+            new_duty = min(self.current_duty + step, self.max_duty)
+            if new_duty != self.current_duty:
+                self.current_duty = new_duty
                 self.pca9685.duty(self.pca_channel, self.current_duty)
         else:  # Current too low
-            if self.current_duty < self.max_duty:
-                self.current_duty = max(
-                    self.current_duty - self.duty_step, self.min_duty)
+            new_duty = max(self.current_duty - step, self.min_duty)
+            if new_duty != self.current_duty:
+                self.current_duty = new_duty
                 self.pca9685.duty(self.pca_channel, self.current_duty)
 
     def _cc_cv_step(self, measurements):
@@ -314,10 +356,17 @@ class BatteryChargerController:
 
     async def start_regulation(self, mode=None):
         """
-        Start the regulation control loop asynchronously.
+        Start the regulation control loop asynchronously with hybrid mode support.
 
         Args:
             mode (str): Regulation mode (voltage_regulation, current_limiting, cc_cv, custom)
+        
+        Hybrid Mode:
+            If sensor_read_interval and pwm_update_interval are set differently,
+            the controller operates in hybrid mode:
+            - Sensor reads at sensor_read_interval (e.g., 10ms)
+            - PWM updates at pwm_update_interval (e.g., 1ms)
+            - Cached sensor data used between reads for faster PWM response
         """
         if mode is None:
             mode = self.MODE_VOLTAGE_REGULATION
@@ -331,23 +380,46 @@ class BatteryChargerController:
         self.is_running = True
         self.cycle_count = 0
         self.start_time = time.ticks_ms()
+        self.last_sensor_read = 0
+        self.cached_measurements = None
 
         print("===="*10)
         print(f"Starting {mode} mode")
+        if self.hybrid_mode:
+            print(f"HYBRID MODE: Sensor={self.sensor_read_interval*1000:.1f}ms, PWM={self.pwm_update_interval*1000:.1f}ms")
         print(f"Target: V={self.target_voltage}V, I={self.target_current}mA")
         print("Press Ctrl+C to stop")
 
         try:
             while self.is_running:
-                # Read measurements
-                measurements = self.read_measurements()
+                current_time = time.ticks_ms()
+                
+                # Hybrid mode: Read sensor only when interval elapsed
+                if self.hybrid_mode:
+                    if self.cached_measurements is None or \
+                       time.ticks_diff(current_time, self.last_sensor_read) >= self.sensor_read_interval * 1000:
+                        self.cached_measurements = self.read_measurements()
+                        self.last_sensor_read = current_time
+                        
+                        # Safety check only when we have fresh data
+                        if not self._safety_check(self.cached_measurements):
+                            print("Safety check failed - stopping regulation")
+                            break
+                    
+                    measurements = self.cached_measurements
+                    update_interval = self.pwm_update_interval
+                else:
+                    # Standard mode: Read sensor every cycle
+                    measurements = self.read_measurements()
+                    
+                    # Safety check
+                    if not self._safety_check(measurements):
+                        print("Safety check failed - stopping regulation")
+                        break
+                    
+                    update_interval = self.update_interval
 
-                # Safety check
-                if not self._safety_check(measurements):
-                    print("Safety check failed - stopping regulation")
-                    break
-
-                # Execute control step based on mode
+                # Execute control step based on mode (uses cached or fresh data)
                 if mode == self.MODE_VOLTAGE_REGULATION:
                     self._voltage_regulation_step(measurements)
                 elif mode == self.MODE_CURRENT_LIMITING:
@@ -358,11 +430,11 @@ class BatteryChargerController:
 
                 # Update statistics
                 self.cycle_count += 1
-                if self.cycle_count % 500 == 0:  # Print every 500 cycles
+                if self.cycle_count % 2000 == 0:  # Print every 2000 cycles
                     self._print_status(measurements)
 
                 # Wait for next cycle (non-blocking)
-                await asyncio.sleep(self.update_interval)
+                await asyncio.sleep(update_interval)
 
         except asyncio.CancelledError:
             print("\nRegulation cancelled")
