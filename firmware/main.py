@@ -140,16 +140,39 @@ async def main():
     # Controller 1: Charging Battery 1 at 8.4V
     controller1 = BatteryChargerController(
         # INA3221 on I2C0 (GP20/GP21)
-        ina_scl_pin=21, ina_sda_pin=20, ina_channel=0,  # Using channel 0
+        ina_scl_pin=21, ina_sda_pin=20, ina_channel=0, ina_address=0x41,  # Using channel 0
         # PCA9685 on I2C1 (GP18/GP19)
         pca_scl_pin=19, pca_sda_pin=18, pca_channel=0, pca_freq=1526,  # Using channel 0
         # Target settings for Battery 1
         target_voltage=8.4,
         target_current=700,
-        duty_step=2,
-        update_interval=0.001  # 1ms updates
+        duty_step=4,
+        update_interval=0.003  # 1ms updates
     )
     
+    controller2 = BatteryChargerController(
+        # INA3221 on I2C0 (GP20/GP21)
+        ina_scl_pin=21, ina_sda_pin=20, ina_channel=1, ina_address=0x41, # Using channel 1
+        # PCA9685 on I2C1 (GP18/GP19)
+        pca_scl_pin=19, pca_sda_pin=18, pca_channel=1, pca_freq=1526,  # Using channel 1
+        # Target settings for Battery 1
+        target_voltage=8.4,
+        target_current=700,
+        duty_step=4,
+        update_interval=0.003  # 1ms updates
+    )
+    
+    controller3 = BatteryChargerController(
+        # INA3221 on I2C0 (GP20/GP21)
+        ina_scl_pin=21, ina_sda_pin=20, ina_channel=2, ina_address=0x41, # Using channel 2
+        # PCA9685 on I2C1 (GP18/GP19)
+        pca_scl_pin=19, pca_sda_pin=18, pca_channel=2, pca_freq=1526,  # Using channel 2
+        # Target settings for Battery 1
+        target_voltage=8.4,
+        target_current=700,
+        duty_step=4,
+        update_interval=0.004  # 4ms updates
+    )
     
     print("\nStarting all controllers...")
     print("Press Ctrl+C to stop all controllers\n")
@@ -158,6 +181,8 @@ async def main():
     tasks = [
         asyncio.create_task(blink_led(0.05)),  # Blink LED every 50ms
         asyncio.create_task(run_controller(controller1, controller1.MODE_CC_CV, "Battery-1")),
+        asyncio.create_task(run_controller(controller2, controller2.MODE_CC_CV, "Battery-2")),
+        asyncio.create_task(run_controller(controller3, controller3.MODE_CC_CV, "Battery-3")),
         # Uncomment these as needed:
         # asyncio.create_task(run_controller(controller2, controller2.MODE_CC_CV, "Battery-2")),
         # asyncio.create_task(run_controller(controller3, controller3.MODE_VOLTAGE_REGULATION, "Battery-3")),

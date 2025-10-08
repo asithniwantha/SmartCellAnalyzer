@@ -1,41 +1,43 @@
 # Smart Cell Analyzer - Configuration File
 # Central configuration for all hardware and control parameters
 
+from micropython import const
+
 # ============================================================================
 # Hardware Pin Configuration
 # ============================================================================
 
 # INA3221 Current/Voltage Sensor (I2C0)
-INA3221_SCL_PIN = 21
-INA3221_SDA_PIN = 20
-INA3221_I2C_FREQ = 400000
-INA3221_ADDRESS = 0x40
+INA3221_SCL_PIN = const(21)
+INA3221_SDA_PIN = const(20)
+INA3221_I2C_FREQ = const(400000)
+INA3221_ADDRESS = const(0x40)
 
 # PCA9685 PWM Controller (I2C1)
-PCA9685_SCL_PIN = 19
-PCA9685_SDA_PIN = 18
-PCA9685_I2C_FREQ = 400000
-PCA9685_ADDRESS = 0x40
-PCA9685_DEFAULT_FREQ = 1526  # PWM frequency in Hz
+PCA9685_SCL_PIN = const(19)
+PCA9685_SDA_PIN = const(18)
+PCA9685_I2C_FREQ = const(400000)
+PCA9685_ADDRESS = const(0x40)
+PCA9685_DEFAULT_FREQ = const(1526)  # PWM frequency in Hz
 
 # ============================================================================
 # Safety Limits
 # ============================================================================
 
-# Voltage Limits (Volts)
+# Voltage Limits (Volts) - Float values cannot use const()
 MAX_VOLTAGE = 30.0
 MIN_VOLTAGE = 0.1
 DEFAULT_TARGET_VOLTAGE = 7.2
 
 # Current Limits (mA)
-MAX_CURRENT = 5000
-MIN_CURRENT = 0
-DEFAULT_TARGET_CURRENT = 1000
+MAX_CURRENT = const(5000)
+MIN_CURRENT = const(0)
+DEFAULT_TARGET_CURRENT = const(1000)
 
-# Power Limits (Watts)
+# Power Limits (Watts) - Float values cannot use const()
 MAX_POWER = 150.0
 
-# Temperature Limits (Celsius) - if temperature monitoring is added
+# Temperature Limits (Celsius) - Float values cannot use const()
 MAX_TEMPERATURE = 85.0
 WARNING_TEMPERATURE = 70.0
 
@@ -44,16 +46,16 @@ WARNING_TEMPERATURE = 70.0
 # ============================================================================
 
 # PWM Control
-MIN_DUTY_CYCLE = 0
-MAX_DUTY_CYCLE = 4095
-DEFAULT_DUTY_STEP = 2
+MIN_DUTY_CYCLE = const(0)
+MAX_DUTY_CYCLE = const(4095)
+DEFAULT_DUTY_STEP = const(2)
 
-# Control Loop Timing
-DEFAULT_UPDATE_INTERVAL = 0.001  # 1ms (1000 Hz)
-FAST_UPDATE_INTERVAL = 0.0005    # 0.5ms (2000 Hz)
-SLOW_UPDATE_INTERVAL = 0.010     # 10ms (100 Hz)
+# Control Loop Timing - Float values cannot use const()
+DEFAULT_UPDATE_INTERVAL = 0.010  # 10ms (100 Hz) - OPTIMIZED from 1ms
+FAST_UPDATE_INTERVAL = 0.005     # 5ms (200 Hz)
+SLOW_UPDATE_INTERVAL = 0.020     # 20ms (50 Hz)
 
-# Regulation Tolerances
+# Regulation Tolerances - Float values cannot use const()
 DEFAULT_VOLTAGE_TOLERANCE = 0.05  # ±50mV
 DEFAULT_CURRENT_TOLERANCE = 50    # ±50mA
 
@@ -117,16 +119,16 @@ SHUNT_RESISTANCES = [0.1, 0.1, 0.1]  # Channel 0, 1, 2
 # Logging Configuration
 # ============================================================================
 
-# Logging intervals
+# Logging intervals - Float values cannot use const()
 LOG_INTERVAL = 1.0  # Log every 1 second
-STATUS_PRINT_INTERVAL = 500  # Print status every 500 cycles
+STATUS_PRINT_INTERVAL = const(2000)  # Print status every 2000 cycles (was 500) - OPTIMIZED
 
 # Log levels
-LOG_LEVEL_DEBUG = 0
-LOG_LEVEL_INFO = 1
-LOG_LEVEL_WARNING = 2
-LOG_LEVEL_ERROR = 3
-DEFAULT_LOG_LEVEL = LOG_LEVEL_INFO
+LOG_LEVEL_DEBUG = const(0)
+LOG_LEVEL_INFO = const(1)
+LOG_LEVEL_WARNING = const(2)
+LOG_LEVEL_ERROR = const(3)
+DEFAULT_LOG_LEVEL = const(1)  # LOG_LEVEL_INFO
 
 # ============================================================================
 # Data Storage
@@ -142,7 +144,7 @@ CONFIG_PATH = "/sd/config/"
 # ============================================================================
 
 DISPLAY_UPDATE_INTERVAL = 0.5  # Update display every 500ms
-DISPLAY_BRIGHTNESS = 128  # 0-255
+DISPLAY_BRIGHTNESS = const(128)  # 0-255
 
 # ============================================================================
 # Network Configuration (if WiFi is added)
@@ -151,20 +153,20 @@ DISPLAY_BRIGHTNESS = 128  # 0-255
 WIFI_ENABLED = False
 WIFI_SSID = "SmartCellAnalyzer"
 WIFI_PASSWORD = ""
-WEB_SERVER_PORT = 80
+WEB_SERVER_PORT = const(80)
 API_ENABLED = False
 
 # ============================================================================
 # Advanced Features
 # ============================================================================
 
-# Enable/disable features
+# Enable/disable features (Boolean cannot use const())
 ENABLE_TEMPERATURE_MONITORING = False
 ENABLE_DATA_LOGGING = False
 ENABLE_WEB_INTERFACE = False
 ENABLE_CALIBRATION_MODE = False
 
-# Calibration
+# Calibration - Float values cannot use const()
 VOLTAGE_CALIBRATION_OFFSET = 0.0  # Volts
 CURRENT_CALIBRATION_OFFSET = 0.0  # mA
 VOLTAGE_CALIBRATION_SCALE = 1.0
