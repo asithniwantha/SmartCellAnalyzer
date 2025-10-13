@@ -385,8 +385,16 @@
       "version": 1
     },
     "net_format_name": "KiCad",
+    "ngspice": {
+      "fix_include_paths": true,
+      "meta": {
+        "version": 0
+      },
+      "model_mode": 4,
+      "workbook_filename": ""
+    },
     "page_layout_descr_file": "",
-    "plot_directory": "",
+    "plot_directory": "./",
     "space_save_all_events": true,
     "spice_current_sheet_as_root": false,
     "spice_external_command": "spice \"%I\"",
@@ -401,6 +409,30 @@
     [
       "892a9d14-73ab-4843-bd3f-848cccce7901",
       "Root"
+    ],
+    [
+      "7374c816-7ddc-4109-a3c3-80b55323afaf",
+      "Charger Discharger1"
+    ],
+    [
+      "f19132a5-7cf6-4ee9-9615-a904d4830dce",
+      "Charger Discharger"
+    ],
+    [
+      "fba4b17c-2fe2-404f-aaa6-4f7681fbe5f0",
+      "Electronic Load"
+    ],
+    [
+      "fba4b17c-2fe2-404f-aaa6-4f7681fbe5f0",
+      "Electronic Load"
+    ],
+    [
+      "1dbe5cc9-bbf4-43ba-8fb3-a418e8e8410b",
+      "Charger Discharger2"
+    ],
+    [
+      "fba4b17c-2fe2-404f-aaa6-4f7681fbe5f0",
+      "Electronic Load"
     ]
   ],
   "text_variables": {}
